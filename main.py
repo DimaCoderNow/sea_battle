@@ -152,25 +152,20 @@ def auto_fill_field(field):
 
 def attack_wounded(x, y):
     """
-    Не работает полноценно, может зациклиться((((
+    list_wounded = [0-мимо, 1-ранил], [хранит индекс направления смещения],
+    [-1, 0], [1, 0], [0, -1], [0, 1] - смещения выстрела, [x, y] - координаты первого ранения, [подсчет попаданий]
     """
-    if list_attack_wounded[0][0] != 0:
-        if list_attack_wounded[1][0] == 5:
-            list_attack_wounded[1][0] = 2
-    else:
-        list_attack_wounded[1][0] = list_attack_wounded[1][0] + 1
-    while True:
-        print("Смена координат для добивания")
-        x = x + list_attack_wounded[list_attack_wounded[1][0]][0]
-        y = y + list_attack_wounded[list_attack_wounded[1][0]][1]
-        print(x, y)
-        time.sleep(3)
-        if 0 < x < 10 and 0 < y < 10:
-            break
-        elif list_attack_wounded[1][0] == 5:
-            list_attack_wounded[1][0] = 2
-        else:
-            list_attack_wounded[1][0] = list_attack_wounded[1][0] + 1
+    if list_wounded[0] == [1]:
+        x += list_wounded[list_wounded[1][0]][0]
+        y += list_wounded[list_wounded[1][0]][1]
+        return x, y
+    # Если не попал при добивании, меняется индекс направление смещения
+    list_wounded[1][0] += 1
+    # Проверка индекса направления смещения
+    if list_wounded[1][0] > 5 or list_wounded[1][0] < 2:
+        list_wounded[1][0] = 2
+    x = list_wounded[6][0] + list_wounded[list_wounded[1][0]][0]
+    y = list_wounded[6][1] + list_wounded[list_wounded[1][0]][1]
     return x, y
 
 
@@ -236,10 +231,10 @@ finish_him = False  # True если есть раненый корабль
 
 #  Список для добивания корабля:
 # [0-мимо, 1-попал], [хранит индекс смещения], [][][][] - смещения выстрела, [x][y] - координаты первого ранения
-list_attack_wounded = [[0], [2], [-1, 0], [1, 0], [0, -1], [0, 1], [0, 0]]
+list_wounded = [[0], [2], [-1, 0], [1, 0], [0, -1], [0, 1], [0, 0], [0]]
 
 print("\n" + " " * 10 + "Корабли расставлены, первым ходит игрок.")
-while bot_ships or user_ships:
+while bot_ships and user_ships:
 
     # АТАКА ИГРОКА
 
@@ -277,34 +272,40 @@ while bot_ships or user_ships:
     # АТАКА БОТА
 
     print(" " * 22 + "Бот Атакует!!!")
-    while user_ships or bot_ships:
+    while user_ships and bot_ships:
         if finish_him:
-            x_attack, y_attack = attack_wounded(x_attack, y_attack)
+            # Если есть раненый, пытается добить
+            x_attack_bot, y_attack_bot = attack_wounded(x_attack_bot, y_attack_bot)
         else:
-            x_attack = random.randint(1, 10)
-            y_attack = random.randint(1, 10)
-        if user_field[x_attack][y_attack] in (miss, dead):
-            list_attack_wounded[0][0] = 0
+            # Генерирует новые координаты выстрела
+            x_attack_bot = random.randint(1, 10)
+            y_attack_bot = random.randint(1, 10)
+        #  Проверяет, был ли выстрел ранее по новым координатам
+        if user_field[x_attack_bot][y_attack_bot] in (miss, dead):
+            list_wounded[0][0] = 0
             continue
-        if user_field[x_attack][y_attack] == part_ship:
-            user_field[x_attack][y_attack] = dead
-            if check_after_attack(user_field, x_attack, y_attack):
+        # Проверяем попал ли бот по кораблю
+        if user_field[x_attack_bot][y_attack_bot] == part_ship:
+            user_field[x_attack_bot][y_attack_bot] = dead
+            # Проверяем убит ли корабль
+            if check_after_attack(user_field, x_attack_bot, y_attack_bot):
                 print(" " * 22 + "Корабль уничтожен!")
                 finish_him = False
-                list_attack_wounded[1][0] = 2
-                fill_around_ship(user_field, x_attack, y_attack)
+                list_wounded[1][0] = 2  # Возвращаем индекс направления в исходное состояние
+                fill_around_ship(user_field, x_attack_bot, y_attack_bot)
                 user_ships.pop()
             else:
                 print(" " * 22 + "Корабль ранен!")
                 if not finish_him:
-                    list_attack_wounded[6][0] = x_attack
-                    list_attack_wounded[6][1] = y_attack
+                    list_wounded[6][0] = x_attack_bot
+                    list_wounded[6][1] = y_attack_bot
                 finish_him = True
-                list_attack_wounded[0][0] = 1
+                list_wounded[0][0] = 1  # Указываем что было попадание
             continue
         else:
             print(" " * 22 + "Бот промахнулся!")
-            user_field[x_attack][y_attack] = miss
+            user_field[x_attack_bot][y_attack_bot] = miss
+            list_wounded[0][0] = 0  # Указываем что бот промахнулся
             break
 if user_field:
     print(" " * 22 + "Вы победили бота! Поздравляем!")
