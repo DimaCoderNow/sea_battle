@@ -17,6 +17,17 @@ def show_field(user, bot):
         print()
 
 
+def wrong_user_input(coordinate):
+    """
+    Возвращает True если введенные координаты за пределами игрового поля
+    False если координаты соответствуют игровому полю.
+    """
+    if len(coordinate) < 4 and coordinate[0].isdigit() \
+            and int(coordinate[0]) in (1, 2, 3, 4, 5, 6, 7, 8, 9, 0) and coordinate[-1] in "абвгдежзик":
+        return False
+    return True
+
+
 def user_input_conv(coordinate):
     """
     Принимает координаты в строковом формате,
@@ -54,10 +65,10 @@ def check_after_attack(field, y, x):
     и False если ранен
     """
     # Выясняем расположение корабля (горизонтальное или вертикальное)
-    if field[y][x + 1] in ("x", part_ship) or field[y][x - 1] in ("x", part_ship):
+    if field[y][x + 1] in (dead, part_ship) or field[y][x - 1] in (dead, part_ship):
         shift_x = 1
         shift_y = 0
-    elif field[y + 1][x] in ("x", part_ship) or field[y - 1][x] in ("x", part_ship):
+    elif field[y + 1][x] in (dead, part_ship) or field[y - 1][x] in (dead, part_ship):
         shift_x = 0
         shift_y = 1
     else:
@@ -85,7 +96,7 @@ def fill_around_ship(field, x, y):
     Заполняет пространство точками вокруг убитого корабля.
     """
     # Выясняем расположение(горизонтальное или вертикальное)
-    if field[x][y+1] == "x" or field[x][y-1] == "x":
+    if field[x][y+1] == dead or field[x][y-1] == dead:
         shift_x = 0
         shift_y = 1
     else:
@@ -95,7 +106,7 @@ def fill_around_ship(field, x, y):
     while True:
         x -= shift_x
         y -= shift_y
-        if field[x][y] != "x":
+        if field[x][y] != dead:
             x += shift_x
             y += shift_y
             break
@@ -103,11 +114,11 @@ def fill_around_ship(field, x, y):
     while True:
         for i in range(x-1, x+2):
             for j in range(y-1, y+2):
-                if field[i][j] != "x":
-                    field[i][j] = "◦"
+                if field[i][j] != dead:
+                    field[i][j] = miss
         x += shift_x
         y += shift_y
-        if field[x][y] != "x":
+        if field[x][y] != dead:
             break
 
 
@@ -166,13 +177,14 @@ def attack_wounded(x, y):
 #  Создание пустых игровых полей
 part_ship = "●"
 emp = "□"
+dead = "X"
+miss = "◦"
 user_field = [[emp for _ in range(12)] for _ in range(12)]
 open_bot_field = [[emp for _ in range(12)] for _ in range(12)]
 hidden_bot_field = [[emp for _ in range(12)] for _ in range(12)]
-
+#  Списки для подсчета очков и расстановки кораблей
 user_ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
 bot_ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
-
 
 print("Добро пожаловать в игру: Морской бой")
 
@@ -183,14 +195,35 @@ else:
     for ship in user_ships:
         show_field(user_field, open_bot_field)
         print("Ввод координат корабля с количеством секций:", ship)
-        x_start, y_start = user_input_conv(input("Введите координаты начала корабля без пробела,"
-                                                 " например - 2б: "))
-        if ship == 1:
-            fill_field(user_field, x_start, y_start, x_start, y_start)
-            show_field(user_field, open_bot_field)
-            continue
-        x_end, y_end = user_input_conv(input("Введите координаты конца корабля без пробела, например - 2б: "))
-        fill_field(user_field, x_start, y_start, x_end, y_end)
+        while True:
+            #  Вводим координаты начала корабля
+            user_input = input("Введите координаты начала корабля без пробела, например - 2б: ")
+            if wrong_user_input(user_input):
+                print("Координаты не соответствуют игровому полю! ")
+                continue
+            x_start, y_start = user_input_conv(user_input)
+            if ship == 1:
+                fill_field(user_field, x_start, y_start, x_start, y_start)
+                show_field(user_field, open_bot_field)
+                continue
+            #  Вводим координаты конца корабля
+            user_input = input("Конец корабля должен быть ниже или правее начала! \n"
+                               "Введите координаты конца корабля без пробела, например - 2д: ")
+            x_end, y_end = user_input_conv(user_input)
+            #  Проверяем размер корабля
+            print(x_end, x_start)
+            print(y_end, y_start)
+            if not (x_end == x_start or y_end == y_start):
+                print("Корабль должен занимать одну линию!")
+                continue
+            if not (x_end - x_start + 1 == ship or y_end - y_start + 1 == ship):
+                print("Вы должны указать корабль с количеством секций: ", ship)
+                continue
+            if wrong_user_input(user_input):
+                print("Координаты не соответствуют игровому полю! ")
+                continue
+            fill_field(user_field, x_start, y_start, x_end, y_end)
+            break
 
 #  Расстановка кораблей у бота
 auto_fill_field(hidden_bot_field)
@@ -212,15 +245,19 @@ while bot_ships or user_ships:
 
     show_field(user_field, open_bot_field)
     while bot_ships:
-        while True:
-            user_attack = input("Введите координаты для выстрела без пробела, например - 2б: ")
-            if int(user_attack[0]) in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10) and user_attack[1] in "абвгдежзик":
-                x_attack, y_attack = user_input_conv(user_attack)
-                break
+        user_attack = input("Введите координаты для выстрела без пробела, например - 2б: ")
+        #  Проверяем введенные координаты
+        if wrong_user_input(user_attack):
             print("Введенных координат на игровом поле нет!")
+            continue
+        x_attack, y_attack = user_input_conv(user_attack)
+        #  Проверяем выстрел на предмет попадания
+        if open_bot_field[x_attack][y_attack] in (miss, dead):
+            print("Вы уже стреляли по данным координатам")
+            continue
         if hidden_bot_field[x_attack][y_attack] == part_ship:
-            open_bot_field[x_attack][y_attack] = "x"
-            hidden_bot_field[x_attack][y_attack] = "x"
+            open_bot_field[x_attack][y_attack] = dead
+            hidden_bot_field[x_attack][y_attack] = dead
             if check_after_attack(hidden_bot_field, x_attack, y_attack):
                 print(" " * 22 + "Корабль уничтожен!")
                 fill_around_ship(open_bot_field, x_attack, y_attack)
@@ -228,12 +265,11 @@ while bot_ships or user_ships:
             else:
                 print(" " * 22 + "Корабль ранен!")
                 time.sleep(1)
-
             show_field(user_field, open_bot_field)
             continue
         else:
             print(" " * 22 + "Вы промахнулись!")
-            open_bot_field[x_attack][y_attack] = "◦"
+            open_bot_field[x_attack][y_attack] = miss
             time.sleep(2)
             show_field(user_field, open_bot_field)
             break
@@ -247,11 +283,11 @@ while bot_ships or user_ships:
         else:
             x_attack = random.randint(1, 10)
             y_attack = random.randint(1, 10)
-        if user_field[x_attack][y_attack] in "◦X":
+        if user_field[x_attack][y_attack] in (miss, dead):
             list_attack_wounded[0][0] = 0
             continue
         if user_field[x_attack][y_attack] == part_ship:
-            user_field[x_attack][y_attack] = "x"
+            user_field[x_attack][y_attack] = dead
             if check_after_attack(user_field, x_attack, y_attack):
                 print(" " * 22 + "Корабль уничтожен!")
                 finish_him = False
@@ -268,7 +304,7 @@ while bot_ships or user_ships:
             continue
         else:
             print(" " * 22 + "Бот промахнулся!")
-            user_field[x_attack][y_attack] = "◦"
+            user_field[x_attack][y_attack] = miss
             break
 if user_field:
     print(" " * 22 + "Вы победили бота! Поздравляем!")
