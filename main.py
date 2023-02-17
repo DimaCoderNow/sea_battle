@@ -182,7 +182,7 @@ if input("Желаете автоматически создать свое по
 else:
     for ship in user_ships:
         show_field(user_field, open_bot_field)
-        print("Ввод координат корабля с количеством палуб:", ship)
+        print("Ввод координат корабля с количеством секций:", ship)
         x_start, y_start = user_input_conv(input("Введите координаты начала корабля без пробела,"
                                                  " например - 2б: "))
         if ship == 1:
