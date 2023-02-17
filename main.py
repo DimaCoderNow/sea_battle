@@ -22,8 +22,10 @@ def wrong_user_input(coordinate):
     Возвращает True если введенные координаты за пределами игрового поля
     False если координаты соответствуют игровому полю.
     """
-    if len(coordinate) < 4 and coordinate[0].isdigit() \
-            and int(coordinate[0]) in (1, 2, 3, 4, 5, 6, 7, 8, 9, 0) and coordinate[-1] in "абвгдежзик":
+    if len(coordinate) == 3 and not coordinate[-1].isdigit():
+        return True
+    if 1 < len(coordinate) < 4 and coordinate[1].isdigit() \
+            and int(coordinate[1:]) in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10) and coordinate[0] in "абвгдежзик":
         return False
     return True
 
@@ -34,7 +36,7 @@ def user_input_conv(coordinate):
     возвращает в числовом.
     """
     lst_y = ["а", "б", "в", "г", "д", "е", "ж", "з", "и", "к"]
-    return int(coordinate[:-1]), lst_y.index(coordinate[-1]) + 1
+    return int(coordinate[1:]), lst_y.index(coordinate[0]) + 1
 
 
 def check_coordinates(field, x_1, y_1, x_2, y_2):
@@ -192,22 +194,25 @@ else:
         print("Ввод координат корабля с количеством секций:", ship)
         while True:
             #  Вводим координаты начала корабля
-            user_input = input("Введите координаты начала корабля без пробела, например - 2б: ")
+            user_input = input("Введите координаты начала корабля без пробела, например - б2: ").lower()
             if wrong_user_input(user_input):
                 print("Координаты не соответствуют игровому полю! ")
                 continue
             x_start, y_start = user_input_conv(user_input)
+            # Проверяем свободно ли место на поле для корабля
+            if not(check_coordinates(user_field, x_start, y_start, x_start, y_start)):
+                show_field(user_field, open_bot_field)
+                print("Место уже занято, либо рядом уже есть корабль")
+                continue
             if ship == 1:
                 fill_field(user_field, x_start, y_start, x_start, y_start)
                 show_field(user_field, open_bot_field)
-                continue
+                break
             #  Вводим координаты конца корабля
-            user_input = input("Конец корабля должен быть ниже или правее начала! \n"
-                               "Введите координаты конца корабля без пробела, например - 2д: ")
+            user_input = input("\nКонец корабля должен быть ниже или правее начала корабля! \n"
+                               "Введите координаты конца корабля без пробела, например - д2: ").lower()
             x_end, y_end = user_input_conv(user_input)
             #  Проверяем размер корабля
-            print(x_end, x_start)
-            print(y_end, y_start)
             if not (x_end == x_start or y_end == y_start):
                 print("Корабль должен занимать одну линию!")
                 continue
@@ -217,6 +222,10 @@ else:
             if wrong_user_input(user_input):
                 print("Координаты не соответствуют игровому полю! ")
                 continue
+            if not(check_coordinates(user_field, x_start, y_start, x_end, y_end)):
+                show_field(user_field, open_bot_field)
+                print("Место уже занято, либо рядом уже есть корабль")
+                continue
             fill_field(user_field, x_start, y_start, x_end, y_end)
             break
 
@@ -224,6 +233,7 @@ else:
 auto_fill_field(hidden_bot_field)
 print("Скрытое поле бота")
 show_field(hidden_bot_field, hidden_bot_field)
+
 
 #  БОЙ БОЙ БОЙ БОЙ
 
@@ -234,13 +244,14 @@ finish_him = False  # True если есть раненый корабль
 list_wounded = [[0], [2], [-1, 0], [1, 0], [0, -1], [0, 1], [0, 0], [0]]
 
 print("\n" + " " * 10 + "Корабли расставлены, первым ходит игрок.")
+
 while bot_ships and user_ships:
 
     # АТАКА ИГРОКА
 
     show_field(user_field, open_bot_field)
     while bot_ships:
-        user_attack = input("Введите координаты для выстрела без пробела, например - 2б: ")
+        user_attack = input("Введите координаты для выстрела без пробела, например - б2: ")
         #  Проверяем введенные координаты
         if wrong_user_input(user_attack):
             print("Введенных координат на игровом поле нет!")
@@ -271,8 +282,11 @@ while bot_ships and user_ships:
 
     # АТАКА БОТА
 
-    print(" " * 22 + "Бот Атакует!!!")
-    while user_ships and bot_ships:
+    if bot_ships:
+        print(" " * 22 + "Бот Атакует!!!")
+    else:
+        break
+    while user_ships:
         if finish_him:
             # Если есть раненый, пытается добить
             x_attack_bot, y_attack_bot = attack_wounded(x_attack_bot, y_attack_bot)
@@ -307,7 +321,8 @@ while bot_ships and user_ships:
             user_field[x_attack_bot][y_attack_bot] = miss
             list_wounded[0][0] = 0  # Указываем что бот промахнулся
             break
+print()
 if user_field:
-    print(" " * 22 + "Вы победили бота! Поздравляем!")
+    print(" " * 15 + "Вы победили бота! Поздравляем!")
 else:
-    print(" " * 22 + "Вы проиграли! БОТ выиграл эту игру!")
+    print(" " * 15 + "Вы проиграли! БОТ выиграл эту игру!")
