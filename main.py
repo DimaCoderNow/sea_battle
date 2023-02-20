@@ -79,7 +79,7 @@ def check_after_attack(field, y, x):
     while True:
         x -= shift_x
         y -= shift_y
-        if field[y][x] == emp:
+        if field[y][x] in (emp, miss):
             x += shift_x
             y += shift_y
             break
@@ -87,7 +87,7 @@ def check_after_attack(field, y, x):
     while True:
         if field[y][x] == part_ship:
             return False
-        if field[y][x] == emp:
+        if field[y][x] in (emp, miss):
             return True
         x += shift_x
         y += shift_y
@@ -231,7 +231,7 @@ else:
 
 #  Расстановка кораблей у бота
 auto_fill_field(hidden_bot_field)
-print("Скрытое поле бота")
+print("Скрытое поле бота")  # пока выводится для тестов
 show_field(hidden_bot_field, hidden_bot_field)
 
 
@@ -264,6 +264,7 @@ while bot_ships and user_ships:
         if hidden_bot_field[x_attack][y_attack] == part_ship:
             open_bot_field[x_attack][y_attack] = dead
             hidden_bot_field[x_attack][y_attack] = dead
+            # Проверяем уничтожен ли корабль
             if check_after_attack(hidden_bot_field, x_attack, y_attack):
                 print(" " * 22 + "Корабль уничтожен!")
                 fill_around_ship(open_bot_field, x_attack, y_attack)
@@ -311,6 +312,7 @@ while bot_ships and user_ships:
             else:
                 print(" " * 22 + "Корабль ранен!")
                 if not finish_him:
+                    # При первом ранении корабля, сохраняем координаты выстрела
                     list_wounded[6][0] = x_attack_bot
                     list_wounded[6][1] = y_attack_bot
                 finish_him = True
